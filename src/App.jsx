@@ -69,6 +69,11 @@ export default function App() {
     style.innerHTML = globalStyles;
     document.head.appendChild(style);
 
+   if (window.Kakao && !window.Kakao.isInitialized()) {
+        window.Kakao.init('YOUR_JAVASCRIPT_KEY');
+        console.log('카카오 SDK 초기화 완료');
+    }
+
     const timer = setInterval(() => {
       const weddingDate = new Date("2026-11-22T15:00:00").getTime();
       const now = new Date().getTime();
@@ -137,6 +142,45 @@ export default function App() {
       'https://images.unsplash.com/photo-1505934333218-8fe21ff88c6f?auto=format&fit=crop&q=80&w=600',
       'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=600'
     ]
+  };
+
+// 3. 카카오톡 공유 함수 추가
+  const shareToKakao = () => {
+    if (window.Kakao) {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed', // 피드 템플릿 사용
+        content: {
+          title: '임한새 ❤️ 권세영 결혼합니다',
+          description: '11월 22일 일요일 오후 3시, 루이비스 강서',
+          // 위 데이터 영역에 정의한 세로 비율 이미지 주소 사용
+          imageUrl: weddingInfo.mainImage,
+          link: {
+            mobileWebUrl: 'https://hsy-wedding.vercel.app',
+            webUrl: 'https://hsy-wedding.vercel.app',
+          },
+        },
+        buttons: [
+          {
+            title: '청첩장 보기',
+            link: {
+              mobileWebUrl: 'https://hsy-wedding.vercel.app',
+              webUrl: 'https://hsy-wedding.vercel.app',
+            },
+          },
+          {
+            title: '위치 보기',
+            link: {
+              // 네이버 지도 길찾기 URL을 여기에 넣으세요.
+              mobileWebUrl: 'https://map.naver.com/p/directions/-/-/14120448.97,37.560126,루이비스%20강서,34947704,PLACE_ID/-/pubtrans',
+              webUrl: 'https://map.naver.com/p/directions/-/-/14120448.97,37.560126,루이비스%20강서,34947704,PLACE_ID/-/pubtrans',
+            },
+          },
+        ],
+      });
+    } else {
+        setToastMessage('카카오톡 공유 기능을 불러오지 못했습니다.');
+        setTimeout(() => setToastMessage(''), 2000);
+    }
   };
 
   // 11월 달력 생성
