@@ -76,7 +76,7 @@ export default function App() {
     lat: 37.560126,
     lng: 126.840608,
     // 사진 소스들 (본인 사진 링크로 교체 필요)
-    mainImage: '/images/main.png',
+    mainImage: '/images/main.jpg',
     intermissionImage1: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
     intermissionImage2: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=800',
     galleryImages: [
