@@ -126,7 +126,7 @@ export default function App() {
     year: 2026, month: 11, day: 22,
     location: '루이비스 강서', address: '서울특별시 강서구 양천로 476',
     lat: 37.560126, lng: 126.840608,
-    mainImage: '/images/main.jpg',
+    mainImage: '/images/main.webp',
     galleryImages: [
       '/images/main.webp',
       'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=600',
