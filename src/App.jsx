@@ -70,7 +70,7 @@ export default function App() {
     document.head.appendChild(style);
 
    if (window.Kakao && !window.Kakao.isInitialized()) {
-        window.Kakao.init('YOUR_JAVASCRIPT_KEY');
+        window.Kakao.init('4d5ada06292a46a5fb9c5daacc4c8eac');
         console.log('카카오 SDK 초기화 완료');
     }
 
