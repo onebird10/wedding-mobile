@@ -76,7 +76,7 @@ export default function App() {
     lat: 37.560126,
     lng: 126.840608,
     // 사진 소스들 (본인 사진 링크로 교체 필요)
-    mainImage: 'https://postfiles.pstatic.net/MjAyMjEyMjhfMTE0/MDAxNjcyMjA4MjQ1OTU2.0svygSJRVW2Wc5CYMilb-p0eZzI5l9cAglaHAbNXvzog.9_0q6jTaxVqkQQH2otTzm01ZCQ6cF74FS7BPkRsa57cg.JPEG.tmhyl4bg/1_%EB%A9%94%EC%9D%B8%EC%82%AC%EC%A7%84.jpg?type=w966',
+    mainImage: '/images/main.png',
     intermissionImage1: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
     intermissionImage2: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&q=80&w=800',
     galleryImages: [
