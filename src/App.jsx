@@ -69,10 +69,14 @@ export default function App() {
     style.innerHTML = globalStyles;
     document.head.appendChild(style);
 
-   if (window.Kakao && !window.Kakao.isInitialized()) {
+   const initKakao = () => {
+      if (window.Kakao && !window.Kakao.isInitialized()) {
         window.Kakao.init('4d5ada06292a46a5fb9c5daacc4c8eac');
         console.log('카카오 SDK 초기화 완료');
-    }
+      }
+    };
+
+    initKakao();
 
     const timer = setInterval(() => {
       const weddingDate = new Date("2026-11-22T15:00:00").getTime();
