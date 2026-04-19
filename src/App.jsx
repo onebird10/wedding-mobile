@@ -95,7 +95,7 @@ export default function App() {
     script.async = true;
     script.onload = () => {
       if (window.Kakao && !window.Kakao.isInitialized()) {
-        window.Kakao.init('4d5ada06292a46a5fb9c5daacc4c8eac'); // 1단계에서 복사한 키
+        window.Kakao.init('4d5ada06292a46a5fb9c5daacc4c8eac');
       }
     };
     document.body.appendChild(script);
@@ -211,8 +211,8 @@ export default function App() {
     window.Kakao.Share.sendDefault({
       objectType: 'feed',
       content: {
-        title: '임한새 ❤️ 권세영 결혼합니다',
-        description: '11월 22일 일요일 오후 3시, 루이비스 강서',
+        title: '한새 💛 세영 결혼합니다🎉',
+        description: '📅 2026.11.22 3시 📍루이비스 강서',
         imageUrl: 'https://hsy-wedding.vercel.app/images/main.webp', 
         link: {
           mobileWebUrl: 'https://hsy-wedding.vercel.app',
