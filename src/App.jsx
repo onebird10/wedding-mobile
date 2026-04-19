@@ -76,6 +76,10 @@ export default function App() {
   const [showAllGallery, setShowAllGallery] = useState(false);
   const [isRsvpOpen, setIsRsvpOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  
+  // 🌟 스냅 사진 업로드 진행 상태 관리
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
   // 글로벌 스타일 주입 및 실시간 카운트다운 계산
   useEffect(() => {
@@ -122,11 +126,71 @@ export default function App() {
     document.body.removeChild(textarea);
   };
 
-  const handleFileUpload = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setToastMessage('소중한 사진이 업로드 되었습니다. 감사합니다!');
+  // Base64 인코딩 헬퍼 함수
+  const getBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(',')[1]); // 헤더 제외한 순수 base64만 추출
+    reader.onerror = error => reject(error);
+  });
+
+  // 🌟 하객 스냅 사진 구글 드라이브 다이렉트 업로드 핸들러
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // 1. 용량 제한 체크 (20MB)
+    const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+    const oversizedFiles = files.filter(f => f.size > MAX_SIZE);
+    
+    if (oversizedFiles.length > 0) {
+      setToastMessage('20MB 이하의 사진/영상만 업로드 가능합니다.');
       setTimeout(() => setToastMessage(''), 3000);
+      e.target.value = ''; // input 초기화
+      return;
     }
+
+    setIsUploading(true);
+    let successCount = 0;
+
+    // 2. 타임아웃 방지를 위한 순차적(1장씩) 업로드 로직
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress(`${i + 1} / ${files.length}장 업로드 중...`);
+
+      try {
+        const base64Data = await getBase64(file);
+        const payload = {
+          filename: file.name,
+          mimeType: file.type,
+          base64: base64Data
+        };
+
+        // 알려주신 GAS 웹 앱 URL로 직접 전송 (Vercel 우회)
+        await fetch('https://script.google.com/macros/s/AKfycbwaLrHfTGng473sAnwTaskuR-SLFqI-u-z0BJdaUVpu5Q6TkhBcVjwp0uaF3Fp7CslGlA/exec', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        
+        successCount++;
+      } catch (error) {
+        console.error('업로드 실패:', file.name, error);
+      }
+    }
+
+    // 3. 업로드 완료 처리
+    setIsUploading(false);
+    setUploadProgress('');
+    
+    if (successCount > 0) {
+      setToastMessage(`총 ${successCount}개의 소중한 추억이 보관되었습니다!`);
+    } else {
+      setToastMessage('업로드 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    }
+    setTimeout(() => setToastMessage(''), 4000);
+    
+    // input 초기화 (같은 파일 다시 선택 가능하도록)
+    e.target.value = '';
   };
 
   // --- 웨딩 데이터 ---
@@ -367,11 +431,30 @@ export default function App() {
       <section className="py-32 px-6 bg-white border-t border-gray-100 text-center">
         <FadeInSection>
           <h2 className="font-cinzel text-xs tracking-[0.4em] text-gray-400 mb-8 uppercase">Guest Snap</h2>
-          <p className="text-[14px] text-gray-500 mb-12 font-light">행복한 순간을 사진으로 남겨주세요.</p>
-          <label className="cursor-pointer inline-flex flex-col items-center justify-center w-full max-w-[280px] h-40 border-2 border-dashed border-gray-300 bg-[#FAFAFA] hover:bg-gray-50 transition-colors">
-            <Camera size={28} className="text-gray-300 mb-3" />
-            <span className="text-[12px] text-gray-400 uppercase tracking-widest">Upload Photo</span>
-            <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+          <p className="text-[14px] text-gray-500 mb-12 font-light">행복한 순간을 사진과 영상으로 남겨주세요.</p>
+          
+          <label className={`cursor-pointer inline-flex flex-col items-center justify-center w-full max-w-[280px] h-40 border-2 border-dashed ${isUploading ? 'border-gray-800 bg-gray-50' : 'border-gray-300 bg-[#FAFAFA] hover:bg-gray-50'} transition-colors`}>
+            {isUploading ? (
+              <div className="flex flex-col items-center animate-pulse">
+                <div className="w-6 h-6 border-2 border-gray-800 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <span className="text-[13px] font-medium text-gray-800 tracking-wider">{uploadProgress}</span>
+                <span className="text-[10px] text-gray-400 mt-2">창을 닫지 말고 잠시 기다려주세요</span>
+              </div>
+            ) : (
+              <>
+                <Camera size={28} className="text-gray-300 mb-3" />
+                <span className="text-[12px] text-gray-400 uppercase tracking-widest">Upload Photo</span>
+                <span className="text-[10px] text-gray-400 mt-2 font-sans">(최대 20MB 제한)</span>
+              </>
+            )}
+            <input 
+              type="file" 
+              className="hidden" 
+              accept="image/*, video/*" 
+              multiple 
+              onChange={handleFileUpload}
+              disabled={isUploading}
+            />
           </label>
         </FadeInSection>
       </section>
@@ -410,7 +493,7 @@ export default function App() {
       )}
 
       {toastMessage && (
-        <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-black text-white px-8 py-4 text-[13px] z-[60] shadow-2xl fade-in tracking-wide">{toastMessage}</div>
+        <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-black text-white px-8 py-4 text-[13px] z-[60] shadow-2xl fade-in tracking-wide w-max max-w-[90%] text-center">{toastMessage}</div>
       )}
     </div>
   );
