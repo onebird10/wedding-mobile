@@ -98,6 +98,7 @@ export default function App() {
   
   // 스냅 사진 업로드 진행 상태 및 선택된 파일 목록
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadComplete, setIsUploadComplete] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
   // 카카오 SDK 로드 및 초기화
@@ -191,6 +192,7 @@ export default function App() {
     }
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
+    setIsUploadComplete(false); // 새 사진을 선택하면 완료 화면을 닫고 썸네일 화면으로 전환
     e.target.value = '';
   };
 
@@ -244,10 +246,13 @@ export default function App() {
     setToastMessage(successCount > 0 ? `${successCount}장의 사진이 보관되었습니다!` : '일부 업로드에 실패했습니다.');
     setTimeout(() => setToastMessage(''), 4000);
 
-    // 성공한 사진은 3초 후 목록에서 정리 (선택사항, 깔끔한 UI를 위해)
-    setTimeout(() => {
+    // 성공한 사진이 1장이라도 있으면 완료 화면으로 전환, 선택 목록 초기화
+    if (successCount > 0) {
+      setIsUploadComplete(true);
+      setSelectedFiles([]);
+    } else {
       setSelectedFiles(prev => prev.filter(f => f.status !== 'success'));
-    }, 3000);
+    }
   };
 
   // 카카오톡 공유 함수
@@ -503,7 +508,18 @@ export default function App() {
           <h2 className="font-cinzel text-xs tracking-[0.4em] text-gray-400 mb-8 uppercase">Guest Snap</h2>
           <p className="text-[14px] text-gray-500 mb-12 font-light">행복한 순간을 사진과 영상으로 남겨주세요.</p>
           
-          {selectedFiles.length === 0 ? (
+          {isUploadComplete ? (
+            <div className="w-full max-w-[320px] mx-auto py-16 px-8 rounded-[2rem] bg-[#FCFBF9] flex flex-col items-center animate-fade-in shadow-[0_15px_40px_rgba(0,0,0,0.06)] border border-[#F3EFEA]">
+              <CheckCircle size={56} strokeWidth={1} className="text-[#C8B0A0] mb-8" />
+              <p className="text-[15px] text-[#4A4340] mb-12 font-medium leading-relaxed tracking-wide">
+                소중한 사진이 성공적으로<br/>전달되었습니다.
+              </p>
+              <label className="cursor-pointer w-full py-4 rounded-full bg-gradient-to-r from-[#C8B0A0] to-[#E5D2C5] text-white text-[14px] tracking-wide flex items-center justify-center gap-1.5 shadow-md hover:opacity-90 transition-opacity">
+                <Plus size={16} strokeWidth={1.5} /> 더 많은 사진 추가하기
+                <input type="file" className="hidden" accept="image/*, video/*" multiple onChange={handleFileSelect} />
+              </label>
+            </div>
+          ) : selectedFiles.length === 0 ? (
             <label className="cursor-pointer inline-flex flex-col items-center justify-center w-full max-w-[280px] h-40 border-2 border-dashed border-gray-300 bg-[#FAFAFA] hover:bg-gray-50 transition-colors">
               <Camera size={28} className="text-gray-300 mb-3" />
               <span className="text-[12px] text-gray-400 uppercase tracking-widest">Select Photos</span>
