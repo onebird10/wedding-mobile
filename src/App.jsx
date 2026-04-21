@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Phone, MessageCircle, ChevronDown, ChevronUp, Share2, Camera, TrainFront, BusFront, Map, Car, X, CheckCircle, Loader2, Plus } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, ChevronDown, ChevronUp, Share2, TrainFront, BusFront, Map, Car } from 'lucide-react';
 
 // --- 스크롤 애니메이션 컴포넌트 ---
 const FadeInSection = ({ children, delay = 0, className = "" }) => {
@@ -73,18 +73,6 @@ const globalStyles = `
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
-
-  /* 썸네일 업로드 진행바 애니메이션 */
-  @keyframes fauxProgress {
-    0% { width: 0%; }
-    10% { width: 30%; }
-    50% { width: 60%; }
-    90% { width: 90%; }
-    100% { width: 95%; }
-  }
-  .faux-progress-bar {
-    animation: fauxProgress 10s cubic-bezier(0.1, 0.5, 0.5, 1) forwards;
-  }
 `;
 
 export default function App() {
@@ -95,12 +83,6 @@ export default function App() {
   const [showAllGallery, setShowAllGallery] = useState(false);
   const [isRsvpOpen, setIsRsvpOpen] = useState(false);
   const [daysLeft, setDaysLeft] = useState(null);
-  
-  // 스냅 사진 업로드 진행 상태 및 선택된 파일 목록
-  const [isUploading, setIsUploading] = useState(false);
-  const [isUploadComplete, setIsUploadComplete] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [guestName, setGuestName] = useState(''); // 이름 입력 상태 추가
 
   // 카카오 SDK 로드 및 초기화
   useEffect(() => {
@@ -155,120 +137,6 @@ export default function App() {
       setToastMessage('복사에 실패했습니다.');
     }
     document.body.removeChild(textarea);
-  };
-
-  // Base64 변환 헬퍼
-  const getBase64 = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = error => reject(error);
-  });
-
-  // 사진 선택 및 썸네일 생성 핸들러
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    const MAX_SIZE = 20 * 1024 * 1024; // 20MB
-    const validFiles = [];
-    let hasOversized = false;
-
-    files.forEach(file => {
-      if (file.size > MAX_SIZE) {
-        hasOversized = true;
-      } else {
-        validFiles.push({
-          id: Math.random().toString(36).substr(2, 9),
-          file,
-          preview: URL.createObjectURL(file),
-          status: 'pending' // 'pending', 'uploading', 'success', 'error'
-        });
-      }
-    });
-
-    if (hasOversized) {
-      setToastMessage('20MB 이하의 파일만 선택 가능합니다.');
-      setTimeout(() => setToastMessage(''), 3000);
-    }
-
-    setSelectedFiles(prev => [...prev, ...validFiles]);
-    setIsUploadComplete(false); // 새 사진을 선택하면 완료 화면을 닫고 썸네일 화면으로 전환
-    e.target.value = '';
-  };
-
-  // 선택된 사진 목록에서 제거
-  const removeFile = (id) => {
-    setSelectedFiles(prev => prev.filter(f => f.id !== id));
-  };
-
-  // 사진 전송(업로드) 핸들러
-  const handleFileUploadSubmit = async () => {
-    const pendingFiles = selectedFiles.filter(f => f.status === 'pending');
-    if (pendingFiles.length === 0) return;
-
-    setIsUploading(true);
-    let successCount = 0;
-
-    // 입력된 이름이 없으면 '익명'으로 처리, 숫자는 1부터 시작
-    const uploaderName = guestName.trim() || '익명';
-    let fileIndex = 1;
-
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const item = selectedFiles[i];
-      if (item.status !== 'pending') continue;
-
-      // 해당 파일 업로드 중 상태로 변경
-      setSelectedFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading' } : f));
-
-      try {
-        const base64Data = await getBase64(item.file);
-        
-        // 원본 파일에서 확장자 추출 (예: .jpg, .png)
-        const lastDotIndex = item.file.name.lastIndexOf('.');
-        const ext = lastDotIndex !== -1 ? item.file.name.substring(lastDotIndex) : '';
-        
-        // 요청하신 [입력한 이름]_[숫자] 형식으로 파일명 생성
-        const customFilename = `${uploaderName}_${fileIndex}${ext}`;
-
-        const payload = {
-          filename: customFilename,
-          mimeType: item.file.type,
-          base64: base64Data
-        };
-
-        const response = await fetch('https://script.google.com/macros/s/AKfycbwaLrHfTGng473sAnwTaskuR-SLFqI-u-z0BJdaUVpu5Q6TkhBcVjwp0uaF3Fp7CslGlA/exec', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-        
-        const result = await response.json();
-        if (result.status === 'success') {
-          successCount++;
-          fileIndex++; // 성공적으로 올라갈 때마다 뒤의 숫자 1씩 증가
-          setSelectedFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'success' } : f));
-        } else {
-          setSelectedFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error' } : f));
-        }
-      } catch (error) {
-        console.error('Upload Error:', error);
-        setSelectedFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error' } : f));
-      }
-    }
-
-    setIsUploading(false);
-    setToastMessage(successCount > 0 ? `${successCount}장의 사진이 보관되었습니다!` : '일부 업로드에 실패했습니다.');
-    setTimeout(() => setToastMessage(''), 4000);
-
-    // 성공한 사진이 1장이라도 있으면 완료 화면으로 전환, 선택 목록은 초기화
-    if (successCount > 0) {
-      setIsUploadComplete(true);
-      setSelectedFiles([]);
-      // 완료 후에는 입력했던 이름도 리셋하려면 아래 주석을 해제하세요.
-      // setGuestName(''); 
-    } else {
-      setSelectedFiles(prev => prev.filter(f => f.status !== 'success'));
-    }
   };
 
   // 카카오톡 공유 함수
@@ -518,117 +386,51 @@ export default function App() {
         </FadeInSection>
       </section>
 
-      {/* 7. 하객 스냅 사진 업로드 */}
+      {/* 7. 하객 스냅 (페이지 분리) */}
       <section className="py-32 px-6 bg-white border-t border-gray-100 text-center">
         <FadeInSection>
-          <h2 className="font-cinzel text-xs tracking-[0.4em] text-gray-400 mb-8 uppercase">Guest Snap</h2>
-          <p className="text-[14px] text-gray-500 mb-12 font-light">행복한 순간을 사진과 영상으로 남겨주세요.</p>
-          
-          {isUploadComplete ? (
-            <div className="w-full max-w-[320px] mx-auto py-16 px-8 rounded-[2rem] bg-[#FCFBF9] flex flex-col items-center animate-fade-in shadow-[0_15px_40px_rgba(0,0,0,0.06)] border border-[#F3EFEA]">
-              <CheckCircle size={56} strokeWidth={1} className="text-[#C8B0A0] mb-8" />
-              <p className="text-[15px] text-[#4A4340] mb-12 font-medium leading-relaxed tracking-wide">
-                소중한 사진이 성공적으로<br/>전달되었습니다.
-              </p>
-              <label className="cursor-pointer w-full py-4 rounded-full bg-gradient-to-r from-[#C8B0A0] to-[#E5D2C5] text-white text-[14px] tracking-wide flex items-center justify-center gap-1.5 shadow-md hover:opacity-90 transition-opacity">
-                <Plus size={16} strokeWidth={1.5} /> 더 많은 사진 추가하기
-                <input type="file" className="hidden" accept="image/*, video/*" multiple onChange={handleFileSelect} />
-              </label>
+          <h2 className="font-cinzel text-[13px] tracking-[0.4em] text-[#A1887F] mb-4 uppercase">Guest Snap</h2>
+          <p className="text-[15px] text-gray-500 mb-10 font-light">신랑·신부의 행복한 순간을 담아주세요</p>
+
+          <div className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-10 bg-gray-100 shadow-sm">
+            {/* 카메라 든 남녀 커플 사진 (Unsplash 플레이스홀더 적용) */}
+            <img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=600" alt="Guest Snap" className="w-full h-full object-cover grayscale-[20%]" />
+          </div>
+
+          <div className="w-full rounded-xl bg-[#FAFAFA] border border-gray-100 p-8 flex flex-col items-center shadow-sm">
+            <p className="text-[14px] text-gray-600 mb-6 font-light leading-relaxed">
+              2026년 11월 22일부터<br />사진 및 영상 업로드가 가능합니다.
+            </p>
+
+            <div className="w-full border-t border-dashed border-gray-300 mb-8"></div>
+
+            <p className="text-[14px] text-gray-800 font-medium mb-6">
+              📸 저희의 스냅 작가님이 되어주세요! 📸
+            </p>
+
+            <div className="text-[13px] text-gray-600 font-light leading-loose mb-8">
+              <p className="mb-2 text-[12px] text-gray-400 font-normal">[이런 순간들을 담아주세요!]</p>
+              <p>1. 행복한 신랑&신부 사진</p>
+              <p>2. 신랑&신부 행진</p>
+              <p>3. 가족&친구들과 함께한 순간</p>
+              <p>4. 여러분들의 사진</p>
             </div>
-          ) : (
-            <div className="w-full max-w-[320px] mx-auto animate-fade-in">
-              {/* 이름 입력 영역 */}
-              <div className="mb-6">
-                <input
-                  type="text"
-                  placeholder="성함 또는 별명 (선택)"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  disabled={isUploading}
-                  className="w-full px-2 py-3 bg-transparent border-b border-gray-200 text-[14px] text-center outline-none focus:border-[#C8B0A0] transition-colors placeholder:text-gray-300"
-                />
-              </div>
 
-              {/* 썸네일 또는 초기 업로드 버튼 */}
-              {selectedFiles.length === 0 ? (
-                <label className="cursor-pointer inline-flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 bg-[#FAFAFA] hover:bg-gray-50 transition-colors">
-                  <Camera size={28} className="text-gray-300 mb-3" />
-                  <span className="text-[12px] text-gray-400 uppercase tracking-widest">Select Photos</span>
-                  <span className="text-[10px] text-gray-400 mt-2 font-sans">(최대 20MB 제한)</span>
-                  <input type="file" className="hidden" accept="image/*, video/*" multiple onChange={handleFileSelect} />
-                </label>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-3 mb-8">
-                    {selectedFiles.map((fileItem) => (
-                      <div key={fileItem.id} className="relative aspect-square bg-gray-100 border border-gray-200 overflow-hidden shadow-sm">
-                        {fileItem.file.type.startsWith('video/') ? (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white text-[10px]">Video</div>
-                        ) : (
-                          <img src={fileItem.preview} alt="preview" className="w-full h-full object-cover" />
-                        )}
-                        
-                        {/* 삭제 버튼 (대기 중일 때만 표시) */}
-                        {fileItem.status === 'pending' && !isUploading && (
-                          <button onClick={() => removeFile(fileItem.id)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors">
-                            <X size={12} />
-                          </button>
-                        )}
+            <p className="text-[13px] text-gray-800 font-medium mb-8 leading-relaxed">
+              🎁 가장 멋진 컷을 남겨주신 분께<br />상품권을 쏩니다!
+            </p>
 
-                        {/* 업로드 진행 상태 오버레이 */}
-                        {fileItem.status === 'uploading' && (
-                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2">
-                            <Loader2 size={16} className="text-white animate-spin mb-2" />
-                            <div className="w-full h-1.5 bg-gray-600 rounded-full overflow-hidden">
-                              <div className="h-full bg-white faux-progress-bar rounded-full"></div>
-                            </div>
-                          </div>
-                        )}
+            <p className="text-[13px] text-gray-500 font-light leading-relaxed mb-8">
+              당일날, 아래 버튼을 통해 올려주세요!<br />많은 참여 부탁드려요! 💖
+            </p>
 
-                        {/* 성공 표시 오버레이 */}
-                        {fileItem.status === 'success' && (
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <CheckCircle size={24} className="text-green-400 drop-shadow-md" />
-                          </div>
-                        )}
-                        
-                        {/* 실패 표시 오버레이 */}
-                        {fileItem.status === 'error' && (
-                          <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center">
-                            <span className="text-white text-[10px] font-bold">실패</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {/* 추가 선택 버튼 */}
-                    {!isUploading && (
-                      <label className="flex flex-col items-center justify-center aspect-square bg-[#FAFAFA] border-2 border-dashed border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
-                        <Plus size={24} className="text-gray-400" />
-                        <input type="file" className="hidden" accept="image/*, video/*" multiple onChange={handleFileSelect} />
-                      </label>
-                    )}
-                  </div>
-
-                  {/* 하단 컨트롤 버튼 */}
-                  {!isUploading && selectedFiles.some(f => f.status === 'pending') && (
-                    <div className="flex gap-2">
-                      <button onClick={() => setSelectedFiles([])} className="flex-1 py-4 bg-white border border-gray-200 text-[13px] text-gray-600 uppercase hover:bg-gray-50 transition-colors">취소</button>
-                      <button onClick={handleFileUploadSubmit} className="flex-[2] py-4 bg-black text-white text-[13px] uppercase hover:bg-gray-800 transition-colors shadow-md">
-                        {selectedFiles.filter(f => f.status === 'pending').length}장 전송하기
-                      </button>
-                    </div>
-                  )}
-                  
-                  {isUploading && (
-                    <div className="py-4 text-[13px] text-gray-500 font-medium animate-pulse border border-gray-100 bg-[#FAFAFA]">
-                      사진을 안전하게 전송하고 있습니다...
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+            <button 
+              onClick={() => window.location.href = 'https://hsy-guest-snap.vercel.app/'}
+              className="w-full py-4 rounded-md bg-[#BCAAA4] text-white text-[14px] tracking-wide font-medium shadow-md hover:bg-[#A1887F] transition-colors"
+            >
+              사진 전달하기
+            </button>
+          </div>
         </FadeInSection>
       </section>
 
